@@ -1,7 +1,7 @@
-# outrun80
-A pseudo 3d racing game for [TIC-80](https://tic.computer/)
+# BimSim
+A chill pseudo 3d train simulation for [TIC-80](https://tic.computer/)
 
-Having fun translating this video https://www.youtube.com/watch?v=N60lBZDEwJ8 to TIC80
+drive a tram, pic up passengers or ignore em in glorious 8-bit style
 
 
 
