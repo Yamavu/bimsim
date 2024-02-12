@@ -1,2 +1,4 @@
 resources/*
-sound_pic2tic/sound_tic80_.py
+.local/*
+*.gif
+bimsim3d.lua

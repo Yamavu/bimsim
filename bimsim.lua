@@ -1,259 +1,152 @@
--- title:  Outrun80
--- author: Uberto Barbini
--- desc:   Pseudo 3d car simulator
--- script: lua
+-- title:   game title
+-- author:  game developer, email, etc.
+-- desc:    short description
+-- site:    website link
+-- license: MIT License (change this to your license of choice)
+-- version: 0.1
+-- script:  lua
 
+local vectmt = {} vectmt.__index = vectmt local function vect(x, y, z) return setmetatable({ x = tonumber(x) or 0, y = tonumber(y) or 0, z = tonumber(z) or 0 }, vectmt) end function vectmt.__add(self, other) return vect(self.x + other.x, self.y + other.y, self.z + other.z) end function vectmt.__sub(self, other) return vect(self.x - other.x, self.y - other.y, self.z - other.z) end function vectmt.__mul(self, num) return vect(self.x*num, self.y*num, self.z*num) end function vectmt.__div(self, num) return vect(self.x/num, self.y/num, self.z/num) end function vectmt.__unm(self) return vect(-self.x, -self.y, -self.z) end function vectmt.__tostring(self) return ('(%i, %i, %i)'):format(x, Bim.acc, z) end function vectmt.dot(self, other) return self.x*other.x + self.y*other.y + self.z*other.z end function vectmt.cross(self, other) return vect( self.y*other.z - self.z*other.y, self.z*other.x - self.x*other.z, self.x*other.y - self.y*other.x ) end function vectmt.len(self) return math.sqrt(self.x*self.x + self.y*self.y + self.z*self.z) end function vectmt.len2(self) return self.x*self.x + self.y*self.y + self.z*self.z end function vectmt.norm(self) return self:__div(self:len()) end function vectmt.round(self, t) t = t or 1 return vect( math.floor((self.x + t * 0.5) / t) * t, math.floor((self.y + t * 0.5) / t) * t, math.floor((self.z + t * 0.5) / t) * t ) end
+Vec3 = vect
+Res = vect(240,136)
+HalfRes = Res / 2
+sound_played = 0
+T=0
 
---screen res
-resW=240
-resH=136
+Friction = 0.98^2
 
-halfW=resW/2	
-halfH=resH/2
+Level= {"S:Station1","S:Station2"}
 
-
-roadW=2000 --road width
-segL=400   --track segment lenght
-camD=0.84  --camera depth
-posV=1500       --position Vertical (high-low)
-skyH=0          --position of Sky
-
-spd=0           --speed
-prog=0          --current progress on the track 
-trackX=0        --horizontal position of the track
-trackLen = 2000 --length of the track
-dH = 40         --left right delta by keys
-
-
-function keys()
-
-	if btn(0) and spd < 250 then spd=spd+1 end
-	if btn(1) and spd > 0 then spd=spd-1 end
-	if btn(2) and spd > 0 then 
-	  posH = posH + dH
-		 skyH = skyH + 1
- end
-	if btn(3) and spd > 0 then 
-	  posH = posH - dH
-		 skyH = skyH - 1
- end
+Bim={}
+function Bim:new(o, pos, weight)
+  o = o or {}
+  setmetatable(o, self)
+  self.__index = self
+  self.pos = pos or 0
+  self.weight = weight or 0
+  self.acc = 0
+  self.speed = 0
+  self.maxspeed = 28
+  return o
 end
-
-
-
-function drawQuad( x1, y1, w1, x2, y2, w2, color)
-
- tri( x1-w1, y1, x1+w1, y1, x2-w2, y2, color) 	
- tri( x2-w2, y2, x1+w1, y1, x2+w2, y2, color) 	
-	
+Bim.speedup = function (self)
+  self.acc=self.acc+1
+  if self.acc > 10 then self.acc = 10 end
 end
-
-function trackSeg(ax,ay,az,aw,c)
-
- return {x	= ax,	
-        y = ay,
-        z = az,
-        w = aw,
-	      	curve = c}	
+Bim.speeddown = function (self)
+  self.acc=self.acc-1
+  if self.acc < 0 then self.acc = 0 end
 end
-
-function project(seg, camX, camY, camZ)
-
-  if seg.z == camZ then 
-	   scale = camD	
-  elseif seg.z <= camZ then --second lap
-	   scale = camD / (seg.z + maxProg - camZ)	
-		else 
-	   scale = camD / (seg.z - camZ)	
-		end
---	trace("project x"..seg.x.." y"..seg.y.." z"..seg.z)
---	trace("project camX"..camX.." camY"..camY.." camZ"..camZ)
-
- 
-	X = (1 + scale*(seg.x-camX)) * halfW		
-	Y = (1 - scale*(seg.y-camY)) * halfH
-	W = scale * seg.w * halfW
-	
---		trace("project X"..X.." Y"..Y.." W"..W.." s"..scale)
-	return X, Y, W
-end
-
-function calcHeight(seg)
-
-  if seg > 300 and seg < 928 then 
-		  return (1+math.cos(3.14+ (seg-300) / 33.3)) * 2000 
-		end
-		
-		if seg > 1500 and seg < 1814 then
-		  return (1+math.cos(3.14+ (seg-1500) / 33.3)) * 3000 
-		end
-		
-		return 0
-end		
-	
-function calcCurve(seg)
-
-		if seg > 100 and seg < 150 then return 1.0 end 
-		if seg > 149 and seg < 300 then return 2.0 end 
-
-		if seg > 700 and seg < 750 then return -1.0 end 
-		if seg > 749 and seg < 900 then return -2.0 end 
-
-		if seg > 1000 and seg < 1050 then return -1.0 end 
-		if seg > 1099 and seg < 1300 then return -2.0 end 
-		if seg > 1299 and seg < 1500 then return 2.0 end
-		
-		return 0
-end
-
-
-function createTrack()
-  t = {}
-  for i=0, trackLen do
-		
-    t[i] = trackSeg(0,calcHeight(i),1+i*segL,roadW,calcCurve(i))
+Bim.brake = function (self)
+  if self.acc > 0 then
+    self.acc = -1
+  else
+    self.acc = self.acc-1
   end
-		
-		trace("prepared track " .. trackLen)
-		
-		return t
+    
+  if self.acc < -10 then self.acc = -10 end
+end
+Bim.brakeup = function (self)
+  self.acc = self.acc+1
+  if self.acc > 0 then self.acc = 0 end
+end
+Bim.update = function (self)
+  if self.speed <= 0 and self.acc <= 0 then 
+    self.speed = 0
+  else 
+    self.speed = self.speed + (self.acc / (self.weight/2000))
+  end
+  if self.speed > self.maxspeed then self.speed = self.maxspeed end
+  self.speed = self.speed * Friction
+  self.pos = self.pos + self.speed
+end
+bim = Bim:new(nil,0,30000)
+
+
+Minimap={
+  draw = function ()
+    w = 64
+    clip(240-w, 136-w,w,w)
+    rect(240-w, 136-w,w,w,0)
+    print("Station 1", 240-w-80, 136-w, 12, false, 1, true)
+    h=10
+    for i=0, 10, 2 do
+      local y = 136+(bim.pos-(h*i))%(2*w)-w
+      rectb(240-w+8,y,w-16,6,12)
+      print(string.format("% 3.0f",y), 240-w/2-8, y-3, 10, false, 1, true)
+    end
+    rect(240-w+14,136-w,4,w,15)
+    rect(240-18,136-w,4,w,15)
+    rectb(240-w, 136-w,w,w,12)
+    line(240-4, 136-32,240-w+4, 136-32,3) -- red
+    clip()
+    local info = string.format("pos: %.1f, speed: %.1f",bim.pos, bim.speed)
+    local info2 = string.format("acc: %.0f",bim.acc)
+    print(info, 240-w-100, 136-w+16, 12, false, 1, true)
+    print(info2, 240-w-100, 136-w+32, 12)
+  end,
+}
+
+Cockpit={
+  draw = function ()
+    
+    q = function (c, ... )
+      local arg = {...}
+      local p1,p2,p3 = nil,nil,nil
+      for i = 0, #arg, 2 do
+        p1 = p2
+        p2 = p3
+        p3 = vect(arg[i],arg[i+1],0)
+        if p2 ~= nil and p1 ~= nil then
+          tri(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c)
+        end
+      end
+      --local center = vect(x3+x2,y3+y2,0)/2
+      --local p1 = vect(x1,y1,0)
+      --p4 = p1+(center-p1)*2
+      --tri(p4.x, p4.y, x2, y2, x3, y3, c)
+    end
+    q(5,5,0,15,100,0,120)
+  end
+}
+
+
+function draw()
+  Cockpit.draw()
+  --Minimap.draw()
 end
 
-function drawSprites(seg)
-
+function update()
+  bim.update(bim)
+  
 end
 
+function sound()
+  local pos = math.floor(bim.pos)%10
+  if pos == sound_played then return end
+  if  pos == 0 and bim.speed > 0 then
+    sfx(16,"D-3",5,0,15,4)
+  end
+  if pos == 2 and bim.speed > 0 then
+    sfx(16,"D-3",4,0,15,5)
+  end
+  sound_played = pos
+end
 
----main
+function TIC()
 
-track = createTrack()
-
-maxProg = trackLen * segL
-
-fps = 60
-cfps = 0
-
-lastFrameSec = time()
-posH=0
-
-function TIC() --main function
-
+	if btnp(0,20,10) then bim:speedup() end
+	if btnp(1,20,10) then bim:speeddown() end
+  if btnp(4,20,10) then bim:brake() end
+	if btnp(5,20,10) then bim:brakeup() end
 	
-	t = time()
-	
-	if t > lastFrameSec + 1000 then
-	  lastFrameSec = t
-			fps = cfps
-			cfps = 1 
-	else
-	  cfps = cfps + 1
-	end
-	
-	keys()
-	
-	prog = prog + spd
-	
-	curr = prog // segL	
-
- --draw sky
+  update()
+  --sound()
 	cls(13)
-
-	spr(64, (skyH+100)%resW, 5, -1, 1,0,0,4,4)
-	spr(64, (skyH+20)%resW, 25, -1, 1,0,0,4,4)
-	spr(64, (skyH+200)%resW, 15, -1, 1,0,0,4,4)
-	
- --draw track
- cp = curr % trackLen
- seg = track[cp]
-	pX,pY,pW = project(seg, posH, posV, prog)
-	
-	posH = posH - seg.curve * spd * 0.1
-	posY = seg.y + posV
-	dx = 0
-	xx = 0
- minY = resH
- for n = curr+1, curr+150 do
-	  
-			c = n % trackLen
-			seg = track[c]
-		
-		 xx = xx + dx
-			dx = dx + seg.curve
-			--trace("x:"..x.." dx"..dx)
-			
-			X,Y,W = project(seg, xx - posH, posY, prog)
-
-   if minY > Y then 
---trace("curr:" .. curr .." c:".. c.." prog:"..progM.." Y"..Y)
-				
-				far = pY-Y < 0.09
-				
-				alt = (n // 4) % 2 == 0
-						
-			 if far or alt then grass=11 else grass=5 end
-			
-				if far or alt then rumble=15 else rumble=6 end
-			
-			 if far or alt then road=7 else road=3 end
-	
-	  
-	   drawQuad(0,  pY, resW,    0, Y, resW, grass)	
-	   drawQuad(pX, pY, pW *1.2, X , Y, W *1.2, rumble)	
-	   drawQuad(pX, pY,	pW,      X	, Y, W, road)	
-
-				if alt then
-					 drawQuad(pX + pW *0.33, pY, pW *0.02, X + W *0.33, Y, W *0.02, rumble)	
-			   drawQuad(pX - pW *0.33, pY, pW *0.02, X - W *0.33, Y, W *0.02, rumble)	
-			  
-				end
-    minY = Y
-   end
-			
-			--draw objects
-			for n = curr+1, curr+150 do
-	 		c = n % trackLen
-				seg = track[c]
-				
-    drawSprites(seg)
-			end	  
-			
-			
-			pX = X
-			pY = Y
-			pW = W
-			
-	end
-	
-	print("s:"..spd.." d:"..cp.."  "..fps)
-
+	draw()
+  
+	T=(T+1)%1024
 end
-
--- <TILES>
--- 001:efffffffff222222f8888888f8222222f8fffffff8ff0ffff8ff0ffff8ff0fff
--- 002:fffffeee2222ffee88880fee22280feefff80fff0ff80f0f0ff80f0f0ff80f0f
--- 003:efffffffff222222f8888888f8222222f8fffffff8fffffff8ff0ffff8ff0fff
--- 004:fffffeee2222ffee88880fee22280feefff80ffffff80f0f0ff80f0f0ff80f0f
--- 017:f8fffffff8888888f888f888f8888ffff8888888f2222222ff000fffefffffef
--- 018:fff800ff88880ffef8880fee88880fee88880fee2222ffee000ffeeeffffeeee
--- 019:f8fffffff8888888f888f888f8888ffff8888888f2222222ff000fffefffffef
--- 020:fff800ff88880ffef8880fee88880fee88880fee2222ffee000ffeeeffffeeee
--- 064:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd00
--- 065:dddddddddddddddddddd0d00ddd0f0ffd00fffffd0ffffff0fffffff0ffffff2
--- 066:dddddddddddddddd0dddddddf0ddddddff0dddddff200dddf2a220dd2affa200
--- 067:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
--- 080:ddd000fad00fffff0fffffffd0ffffff0fffffff0fffffffd0ffffff0fffffff
--- 081:a22ffffafaa2fffffff22ffffffa22ffffffa2ffffff2fffffa2ffffffffffff
--- 082:affffafffffffffffffffffffffffffffffffffffffffff2fffff22affffffff
--- 083:000dddddfff0ddddffff00ddf222ff0d2aa22f20affa2f20ffffaf20fffff20d
--- 096:d0ffffffd00fffafddd02aa2ddd00220ddddd00ddddddddddddddddddddddddd
--- 097:ffffffffffffffffff2affff22022aff00d00aaadddd0222ddddd002ddddddd0
--- 098:ffffffffffffffffffffffffafffaffaafaa22aaaa2200222200dd0000dddddd
--- 099:fffff20dfffff20dffffff20fffaff20afaaa2202220200d000d0ddddddddddd
--- 112:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
--- 113:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
--- 114:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
--- 115:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
--- </TILES>
 
 -- <WAVES>
 -- 000:00000000ffffffff00000000ffffffff
@@ -263,8 +156,14 @@ end
 
 -- <SFX>
 -- 000:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000304000000000
+-- 016:13c053a09380d360e340f310f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300282000000000
 -- </SFX>
 
+-- <TRACKS>
+-- 000:100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- </TRACKS>
+
 -- <PALETTE>
--- 000:140c1c44243459a1ce616155854c30488d28d04648757161597dced27d2c8595a16daa2cd2aa996dc2cadad45edeeed6
+-- 000:1a1c2c5d275db13e53ef7d57ffcd75a7f07038b76425717929366f3b5dc941a6f673eff7f4f4f494b0c2566c86333c57
 -- </PALETTE>
+
