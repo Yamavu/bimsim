@@ -90,56 +90,84 @@ Minimap={
 Cockpit={
   draw = function ()
     
-    q = function (c, ... )
+    q = function (c, b, cx,cy, ... )
       local arg = {...}
-      local p1,p2,p3 = nil,nil,nil
-      for i = 1, #arg, 2 do
-        p1 = p2
-        p2 = p3
-        p3 = vect(arg[i],arg[i+1],0)
-        if p2 ~= nil and p1 ~= nil then
-          tri(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c)
-          --print(string.format("tri(%.1f, %.1f, %.1f, %.1f, %.1f, %.1f, %d)",p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c),10,10*i,12)
-        end
-      end
-      --local center = vect(x3+x2,y3+y2,0)/2
-      --local p1 = vect(x1,y1,0)
-      --p4 = p1+(center-p1)*2
-      --tri(p4.x, p4.y, x2, y2, x3, y3, c)
-    end
-    q2 = function (c, cx,cy, ... )
-      local arg = {...}
+      trace(#arg)
       local p1x = nil 
       local p1y = nil
       local p2x = nil
       local p2y = nil
-      for i = 3, #arg, 2 do
+      for i = 1, #arg, 2 do
         p1x, p1y = p2x, p2y
         p2x, p2y = arg[i],arg[i+1]
         if p1x ~= nil and p1y ~= nil then
-          tri(p1x, p1y, p2x, p2y, cx, cy, c)
+          tri(cx, cy, p1x, p1y, p2x, p2y,  c)
+          line(p1x, p1y, p2x, p2y, b)
+          trace(string.format("(%.0f, %.0f) (%.0f, %.0f) (%.0f, %.0f)",cx, cy, p1x, p1y, p2x, p2y))
         end
-        trace(p1x, p1y, p2x, p2y, cx, cy, c)
       end
+      tri(cx, cy, p2x, p2y, arg[1], arg[2],  c)
+      trace(string.format("(%.0f, %.0f) (%.0f, %.0f) (%.0f, %.0f)",cx, cy, p2x, p2y,arg[1], arg[2]))
     end
-    --q(15,15,0,5,0,15,100,25,100,0,120,0,136,60,136,15,0)
-
-    q2(1, 18,40, 26,0, 5,0, 15,100, 32,64, 27,46, 26,5, 26,0, 5,0)
-    q2(1,44,100, 32,64, 15,100, 7,110, 0,114, 0,130, 35,108, 63,98, 98,93, 82,90, 50,85, 32,64, 15,100)
-    q2(1, 120,90, 98,93, 50,85, 139,88, 146,88, 185,92, 50,85)
+	q(15, 0, 214,130,
+      0,136, 0,115, 98,92, 238,92, 240,94, 240,136
+    )
+    q( 14, 15, 
+       25,100, 5,0, 14,94, 10,104, -1,110, 
+      -1,124, 21,112, 44,105,  108,93, 108,90, 
+      50,85, 32,64, 27,46, 26,0
+    )
+    q(12,15, 145,45, 145,0, 140,90, 145,90, 155,0)
+    q(14, 15, 214,90,
+      220,85, 174,86, 108,90, 108,93, 160,100,
+      171, 115, 192,126, 227,115, 238,92, 225,85, 224,91, 220,85
+      
+    )
+    
+    
+    spr(32,100,80, 0, 2,0,0,3,2)
+    rect(86,105,72,24,14)
+    t_x,t_y = 211,74
+    rect(t_x,t_y,14,18,15)
+    elli(t_x,t_y,14,18,12)
+    ellib(t_x,t_y,14,18,15)
+    a=bim.speed/8-4
+    tri(t_x-math.cos(a-math.pi/2), t_y-math.sin(a-math.pi/2), t_x+math.cos(a-math.pi/2), t_y+math.sin(a-math.pi/2), 211+10*math.cos(a), 74+10*math.sin(a),3)
+    trib(t_x-math.cos(a-math.pi/2), t_y-math.sin(a-math.pi/2), t_x+math.cos(a-math.pi/2), t_y+math.sin(a-math.pi/2), 211+10*math.cos(a), 74+10*math.sin(a),2)
+    --line(t_x,t_y,211+10*math.cos(a), 74+10*math.sin(a),3)
+    
+    --q2(1, 0, 20,112, 14,100, -1,114, -1,124, 21,112, 44,105,  108,93, 108,90, 50,85)--,0,130)
+    --q2(3, 0, 44,105, 32,64, 63,98, 98,93, 98,90, 50,85)
+    --q2(1, 0, 120,90, 98,93, 98,90, 139,88, 139,91)
+    --q2(12,0, 100,60, 139,88, 139,91, 146,88, 185,92)
 
   end
 }
-ran_setup = false
 
 local p1x, p1y, p2x,p2y = nil,1,nil,nil
 print(p1x, p1y, p2x,p2y )
 
+function drawpt(x,y)
+  circb(x,y,3,4)
+  if x > 200 then
+    print(string.format("(%d, %d)",x,y),x-40,y, 4, false, 1, true)
+  else
+    print(string.format("(%d, %d)",x,y),x+8,y, 4, false, 1, true)
+  end
+end
+
+pts = {}
 function draw()
-  if not ran_setup then 
-    cls(13)
-    Cockpit.draw()
-    ran_setup = true
+  cls(13)
+  Cockpit.draw()
+  local x,y,click = mouse()
+  drawpt(x,y)
+  for i=1,#pts,2 do
+    drawpt(pts[i],pts[i+1])
+  end
+  if click then
+    table.insert(pts, x)
+    table.insert(pts, y)
   end
   --Minimap.draw()
 end
@@ -174,6 +202,15 @@ function TIC()
   
 	T=(T+1)%1024
 end
+
+-- <TILES>
+-- 032:fffffffffeeeeeeefe332ee4fe332ee4fe222ee3feeeeeeefecc5ee5fecc5ee5
+-- 033:ffffffffeeeeeeee43eecc4e43eecc4e33ee444eeeeeeeee56eebbae56eebbae
+-- 034:ffffff00eeeeef00eaa9ef00eaa9ef00e999ef00eeeeef00eaadef00eaadef00
+-- 048:fe555ee6feeeeeeefeeeeeffffffffff00000000000000000000000000000000
+-- 049:66eeaaaeeeeeeeeeeeeeeeeeffffffff00000000000000000000000000000000
+-- 050:edddef00eeeeef00eeeeef00ffffff0000000000000000000000000000000000
+-- </TILES>
 
 -- <WAVES>
 -- 000:00000000ffffffff00000000ffffffff
