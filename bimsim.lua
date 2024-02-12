@@ -93,12 +93,13 @@ Cockpit={
     q = function (c, ... )
       local arg = {...}
       local p1,p2,p3 = nil,nil,nil
-      for i = 0, #arg, 2 do
+      for i = 1, #arg, 2 do
         p1 = p2
         p2 = p3
         p3 = vect(arg[i],arg[i+1],0)
         if p2 ~= nil and p1 ~= nil then
           tri(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c)
+          --print(string.format("tri(%.1f, %.1f, %.1f, %.1f, %.1f, %.1f, %d)",p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c),10,10*i,12)
         end
       end
       --local center = vect(x3+x2,y3+y2,0)/2
@@ -106,13 +107,40 @@ Cockpit={
       --p4 = p1+(center-p1)*2
       --tri(p4.x, p4.y, x2, y2, x3, y3, c)
     end
-    q(5,5,0,15,100,0,120)
+    q2 = function (c, cx,cy, ... )
+      local arg = {...}
+      local p1x = nil 
+      local p1y = nil
+      local p2x = nil
+      local p2y = nil
+      for i = 3, #arg, 2 do
+        p1x, p1y = p2x, p2y
+        p2x, p2y = arg[i],arg[i+1]
+        if p1x ~= nil and p1y ~= nil then
+          tri(p1x, p1y, p2x, p2y, cx, cy, c)
+        end
+        trace(p1x, p1y, p2x, p2y, cx, cy, c)
+      end
+    end
+    --q(15,15,0,5,0,15,100,25,100,0,120,0,136,60,136,15,0)
+
+    q2(1, 18,40, 26,0, 5,0, 15,100, 32,64, 27,46, 26,5, 26,0, 5,0)
+    q2(1,44,100, 32,64, 15,100, 7,110, 0,114, 0,130, 35,108, 63,98, 98,93, 82,90, 50,85, 32,64, 15,100)
+    q2(1, 120,90, 98,93, 50,85, 139,88, 146,88, 185,92, 50,85)
+
   end
 }
+ran_setup = false
 
+local p1x, p1y, p2x,p2y = nil,1,nil,nil
+print(p1x, p1y, p2x,p2y )
 
 function draw()
-  Cockpit.draw()
+  if not ran_setup then 
+    cls(13)
+    Cockpit.draw()
+    ran_setup = true
+  end
   --Minimap.draw()
 end
 
@@ -142,7 +170,6 @@ function TIC()
 	
   update()
   --sound()
-	cls(13)
 	draw()
   
 	T=(T+1)%1024
