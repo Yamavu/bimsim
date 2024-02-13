@@ -125,7 +125,7 @@ Cockpit={
     )
     
     
-    spr(32,100,80, 0, 2,0,0,3,2)
+    spr(288,100,80, 0, 2,0,0,3,2)
     rect(86,105,72,24,14)
     t_x,t_y = 211,74
     rect(t_x,t_y,14,18,15)
@@ -203,14 +203,14 @@ function TIC()
 	T=(T+1)%1024
 end
 
--- <TILES>
+-- <SPRITES>
 -- 032:fffffffffeeeeeeefe332ee4fe332ee4fe222ee3feeeeeeefecc5ee5fecc5ee5
 -- 033:ffffffffeeeeeeee43eecc4e43eecc4e33ee444eeeeeeeee56eebbae56eebbae
 -- 034:ffffff00eeeeef00eaa9ef00eaa9ef00e999ef00eeeeef00eaadef00eaadef00
 -- 048:fe555ee6feeeeeeefeeeeeffffffffff00000000000000000000000000000000
 -- 049:66eeaaaeeeeeeeeeeeeeeeeeffffffff00000000000000000000000000000000
 -- 050:edddef00eeeeef00eeeeef00ffffff0000000000000000000000000000000000
--- </TILES>
+-- </SPRITES>
 
 -- <WAVES>
 -- 000:00000000ffffffff00000000ffffffff
