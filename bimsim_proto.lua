@@ -6,8 +6,8 @@
 -- version: 0.1
 -- script:  lua
 
-function kmh_ms60(s)
-	return s/216
+function ms_kmh(s)
+	return 3.6*s
 end
 
 function clamp(x,x_min,x_max)
@@ -24,7 +24,10 @@ trace(clamp(10,0,50))
 trace(clamp(0,0,50))
 trace(clamp(100,0,50))
 
-Track={}
+Track={
+	airResistance = 0.0, -- 1.161 = (0.5)*0.3*1.29*6
+	friction = 2
+}
 function Track:new(o)
 	o = o or {}   -- create object if user does not provide one
 	setmetatable(o, self)
@@ -32,66 +35,91 @@ function Track:new(o)
 	return o
 end
 function Track:update(loc)
-	if bim.x>200 then 
-		reset()
-	end
+	
 end
-function Track:draw(loc)
-	loc = bim.x
+function Track:draw(loc,y)
+	loc = 2* loc
 	circ(20,80,2,12)
 	circ(220,80,2,12)
 	line(20,80,220,80,12)
 	circb(20+loc,80,5-(T//10)%3,12)
 	circ(20+loc,80,2,2)
+	y=y/2
+	line(20+loc,70,20+loc,70-y,4)
 end
 
-Bim={}
+load=0.5
+throttle = 0-- Acceleration/braking input, range: [-1, 1]
+
+local Bim = {
+ weight = 22300+8000/load, -- kg
+ length = 19.7, -- meters
+ maxSpeed = 20, -- m/s
+ acceleration = 2, -- m/s^2
+ brakeDeceleration = 4, -- m/s^2
+ 
+ position = 0,
+ velocity = 0,
+}
 function Bim:new(o)
 	o = o or {}   -- create object if user does not provide one
 	setmetatable(o, self)
 	self.__index = self
 	return o
 end
+
+
 function Bim:update()
-	local max_v = 50
-	local drag = 0.5*0.3*1.29*6*self.v^2
-	local friction = 10
-	local length = 19.7 /10
-	local air_resistance = drag / 1000 --0.075
-	local mass= self.m*1000
-	self.v = self.v + p / 10
-	self.v = (self.v - (friction / mass) + (length / mass))
-	 * (1 - air_resistance * 1000 / mass )
-	print(string.format("drag = %.1f",drag^0.5),240-8*10,22)
-	--self.v = (self.v + p)*0.98^2
-	self.v = clamp(self.v,0,max_v)
---	trace(self.v)
-	self.x = self.x + kmh_ms60(self.v)
+	local acceleration = 0
+	if throttle > 0 then
+		acceleration = throttle * Bim.acceleration
+	elseif throttle < 0 then
+		acceleration = throttle * Bim.brakeDeceleration
+	end
+	local airResistanceForce = Track.airResistance * self.velocity^2  / self.weight
+	local frictionForce = Track.friction 
+	local newAcceleration = (acceleration - Track.friction) - airResistanceForce
+	print(string.format("(%.1f - %.1f ) - %.1f = %.1f",acceleration,frictionForce, airResistanceForce,newAcceleration),10,32)
+	self.velocity = self.velocity + newAcceleration / 60
+	self.velocity = 
+		math.min(
+			math.max(
+				self.velocity,
+				-self.maxSpeed
+			),
+			self.maxSpeed
+		)
+	self.position = self.position + self.velocity / 60
+	if self.position>200 then 
+		self:reset()
+	end
 end
 function Bim:reset()
-	bim.x = 0
-	bim.v = 0		
+	self.position = 0
+	self.velocity = 0
 end
-load=0.5
-bim=Bim:new{x=0,v=0,m=22.3+8/load}
-p=0
 function update()
-	if btnp(0,5,5) then p = p + 1 end
-	if btnp(1,5,5) then p = p - 1 end
-	p = clamp(p,0,10)
-	bim:update()
-	Track:update(bim.x)
+	if btnp(0,5,5) then throttle = throttle + 1 end
+	if btnp(1,5,5) then throttle = throttle - 1 end
+	throttle = clamp(throttle,-10,10)
+	Bim:update()
+	Track:update(Bim.position)
 end
 T=0
 function draw()
-	print(string.format("speed = %.1f",bim.v),10,10)
-	print(string.format("x = %.1f",bim.x),10,16)
-	print(string.format("p = %d",p),10,22)
-	Track:draw()
+	print(string.format("speed = %.1f",ms_kmh(Bim.velocity)),10,10)
+	print(string.format("x = %.1f",Bim.position),10,16)
+	print(string.format("p = %d",throttle),10,22)
+	Track:draw(Bim.position,Bim.velocity)
 end
 
+cls(0)
 function TIC()
+	clip(0,0,240,40)
 	cls(14)
+	clip(0,74,240,136)
+	cls(14)
+	clip()
 	update()
 	draw()
 	T=T+1

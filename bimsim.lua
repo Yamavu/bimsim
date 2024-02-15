@@ -15,7 +15,16 @@ T=0
 
 Friction = 0.98^2
 
-Level= {"S:Station1","S:Station2"}
+Level= {
+  from="S:Station1",
+  to="S:Station2",
+  draw=function ()
+    --draw in clipped area 240,104
+    cls(14)
+    rect(0,60,240,60,13)
+    spr(14, 200,50,8,1,0,0,2,2)
+  end
+}
 
 Bim={}
 function Bim:new(o, pos, weight)
@@ -64,26 +73,27 @@ bim = Bim:new(nil,0,30000)
 
 
 Minimap={
-  draw = function ()
-    w = 64
-    clip(240-w, 136-w,w,w)
-    rect(240-w, 136-w,w,w,0)
-    print("Station 1", 240-w-80, 136-w, 12, false, 1, true)
+  draw = function (x,y)
+    local w = 64
+    --local x, y = 240-w, 136-w
+    clip(x,y,w,w)
+    rect(x, y,w,w,0)
+    print("Station 1", x-80, y, 12, false, 1, true)
     h=10
     for i=0, 10, 2 do
       local y = 136+(bim.pos-(h*i))%(2*w)-w
-      rectb(240-w+8,y,w-16,6,12)
-      print(string.format("% 3.0f",y), 240-w/2-8, y-3, 10, false, 1, true)
+      rectb(x+8,y,w-16,6,12)
+      print(string.format("% 3.0f",y), x+(w/2)-12, y-3, 3, false, 1, false)
     end
-    rect(240-w+14,136-w,4,w,15)
-    rect(240-18,136-w,4,w,15)
-    rectb(240-w, 136-w,w,w,12)
-    line(240-4, 136-32,240-w+4, 136-32,3) -- red
+    rect(x+14,y,4,w,15)
+    rect(240-18,y,4,w,15)
+    rectb(x, y,w,w,12)
+    line(240-4, 136-32,x+4, 136-32,3) -- red
     clip()
     local info = string.format("pos: %.1f, speed: %.1f",bim.pos, bim.speed)
     local info2 = string.format("acc: %.0f",bim.acc)
-    print(info, 240-w-100, 136-w+16, 12, false, 1, true)
-    print(info2, 240-w-100, 136-w+32, 12)
+    print(info, x-100, y+16, 12, false, 1, true)
+    print(info2, x-100, y+32, 12)
   end,
 }
 
@@ -114,19 +124,23 @@ Cockpit={
     tri(t_x-math.cos(a-math.pi/2), t_y-math.sin(a-math.pi/2), t_x+math.cos(a-math.pi/2), t_y+math.sin(a-math.pi/2), t_x+10*math.cos(a), t_y+10*math.sin(a),3)
     trib(t_x-math.cos(a-math.pi/2), t_y-math.sin(a-math.pi/2), t_x+math.cos(a-math.pi/2), t_y+math.sin(a-math.pi/2), t_x+10*math.cos(a), t_y+10*math.sin(a),2)
   end,
+  controls = function ()
+    spr(259,88,96,11,1,0,0,4,3)
+    spr(320,78,117,11,1,0,0,8,3)
+    Cockpit.tachometer(224,98,bim.speed)
+  end,
   draw = function ()
     Cockpit.ngon(15,0, 20,100, 
-      20,-1, 23,58, 27,70, 35,86, 43,94, 55,100, 70,104, 
+      20,-1, 23,58, 27,70, 35,86, 43,94, 55,100, 70,104,
       70,136, -1,136,
       -1,104, 8,98, 12,90, 13,-1
     )
     Cockpit.ngon( 15,0, 145,50,
       139,104, 151,0, 156,0, 142,104
     )
-    spr(259,88,96,11,1,0,0,4,3)
-    Cockpit.tachometer(224,98,bim.speed)
   end,
   setup = function ()
+    Cockpit.draw()
     rect(210,104,30,13,15)
     rect(61,117,179,19,4)
     Cockpit.ngon( 7,0, 185,110,
@@ -135,9 +149,9 @@ Cockpit={
       77,104,
       70,104, 0,112, 0,136, 61,136, 
       77,117)
-    spr(259,88,96,11,1,0,0,4,3)
-    spr(320,78,117,11,1,0,0,8,3)
-
+    Cockpit.controls()
+    
+    
 
   end
 }
@@ -158,12 +172,13 @@ pts = {}
 
 cls(15)
 Cockpit.setup()
-
 function draw()
-  
   clip(0,0,240,104)
   cls(13)
+  Level.draw()
   Cockpit.draw()
+  clip()
+  Cockpit.controls()
   local x,y,click = mouse()
   drawpt(x,y)
   for i=1,#pts,2 do
@@ -173,7 +188,7 @@ function draw()
     table.insert(pts, x)
     table.insert(pts, y)
   end
-  --Minimap.draw()
+  Minimap.draw(240-64,136-64)
 end
 
 function update()
