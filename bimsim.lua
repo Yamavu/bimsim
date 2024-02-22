@@ -6,6 +6,43 @@
 -- version: 0.1
 -- script:  lua
 
+function clamp(x,x_min,x_max)
+	return math.min( math.max( x, x_min ), x_max )
+end
+
+function bezier(t, p0X, p0Y, p1X, p1Y, p2X, p2Y, p3X, p3Y)
+	
+	local cX = 3 * (p1X - p0X)
+	local bX = 3 * (p2X - p1X) - cX
+	local aX = p3X - p0X - cX - bX
+	
+	local cY = 3 * (p1Y - p0Y)
+	local bY = 3 * (p2Y - p1Y) - cY
+	local aY = p3Y - p0Y - cY - bY
+	
+	return ((aX * t^3) + (bX * (t^2)) + (cX * t) + p0X),
+			((aY * (t^3)) + (bY * (t^2)) + (cY * t) + p0Y)	
+end
+
+
+
+function curveLine(p0X, p0Y, p1X, p1Y, p2X, p2Y, p3X, p3Y)
+	local x, y = p0X, p0Y
+	local pX, pY = 0, 0
+  local accuracy = 0.05
+	
+	for i = 0, 1+accuracy, accuracy do
+		pX, pY = bezier(i, p0X, p0Y, p1X, p1Y, p2X, p2Y, p3X, p3Y)
+		line(x, y, pX, pY, 12)
+		x, y = pX, pY
+	end
+end
+
+
+
+
+
+
 local vectmt = {} vectmt.__index = vectmt local function vect(x, y, z) return setmetatable({ x = tonumber(x) or 0, y = tonumber(y) or 0, z = tonumber(z) or 0 }, vectmt) end function vectmt.__add(self, other) return vect(self.x + other.x, self.y + other.y, self.z + other.z) end function vectmt.__sub(self, other) return vect(self.x - other.x, self.y - other.y, self.z - other.z) end function vectmt.__mul(self, num) return vect(self.x*num, self.y*num, self.z*num) end function vectmt.__div(self, num) return vect(self.x/num, self.y/num, self.z/num) end function vectmt.__unm(self) return vect(-self.x, -self.y, -self.z) end function vectmt.__tostring(self) return ('(%i, %i, %i)'):format(x, Bim.acc, z) end function vectmt.dot(self, other) return self.x*other.x + self.y*other.y + self.z*other.z end function vectmt.cross(self, other) return vect( self.y*other.z - self.z*other.y, self.z*other.x - self.x*other.z, self.x*other.y - self.y*other.x ) end function vectmt.len(self) return math.sqrt(self.x*self.x + self.y*self.y + self.z*self.z) end function vectmt.len2(self) return self.x*self.x + self.y*self.y + self.z*self.z end function vectmt.norm(self) return self:__div(self:len()) end function vectmt.round(self, t) t = t or 1 return vect( math.floor((self.x + t * 0.5) / t) * t, math.floor((self.y + t * 0.5) / t) * t, math.floor((self.z + t * 0.5) / t) * t ) end
 Vec3 = vect
 Res = vect(240,136)
@@ -14,15 +51,25 @@ sound_played = 0
 T=0
 
 Friction = 0.98^2
-
+X = -100
 Level= {
   from="S:Station1",
   to="S:Station2",
   draw=function ()
+    local bez = function(...)
+      local pathPoints = {...}
+      
+    end
     --draw in clipped area 240,104
     cls(14)
+    
     rect(0,60,240,60,13)
+    local t_x = 100+math.floor(X)
+    curveLine(90,136, 90,100, t_x,60,  t_x-2,60)
+    curveLine(146,136, 146,100, t_x,60, t_x+2,60 )
     spr(14, 200,50,8,1,0,0,2,2)
+    X = X + 0.2
+    if X > 100 then X = -100 end
   end
 }
 
@@ -151,7 +198,6 @@ Cockpit={
       77,117)
     Cockpit.controls()
     
-    
 
   end
 }
@@ -167,6 +213,8 @@ function drawpt(x,y)
     print(string.format("(%d, %d)",x,y),x+8,y, 4, false, 1, true)
   end
 end
+
+
 
 pts = {}
 
