@@ -42,7 +42,7 @@ trace(string.format("Screen coordinates: (%f, %f)",screenX, screenY))
 ]]
 
 t=0
-
+scale = 2
 r=3
 
 Projection = {}
@@ -110,7 +110,6 @@ function Projection:tri(x0, y0, z0, x1, y1, z1, x2, y2, z2, color,border)
 end
 
 function Projection:ttri(x1, y1, z1, x2, y2, z2, x3, y3, z3, u1, v1, u2, v2, u3, v3, texsrc, chromakey)
-	local border = border or false
 	local texsrc= texsrc or 0
 	local chromakey= chromakey or -1
 	local color = color or -1
@@ -140,24 +139,45 @@ function Projection:tquad(x,y,z,size)
 	p:ttri( x+x0, y+y0, z+z0, x+x0, y+y0, z-z0-size, x-x0-size, y+y0, z-z0-size, 8,0, 8,8,  0,8,  0,5)
 end
 
-function Projection:tspr()
-	
+function Projection:tspr(x1,y1,z1, y2,texsrc,chromakey)
+	if z1 < 0 then return end
+	local texsrc= texsrc or 0
+	local chromakey= chromakey or -1
+	if y1 < y2 then
+		y1,y2 = y2,y1
+		print("swap",200,4,3)
+	end
+	local u,v = 16,16
+	local w,h = 16,16
+	local projectedX1 = (x1 * self.distanceToScreen) / z1
+	local projectedY1 = (y1 * self.distanceToScreen) / z1
+	local screenX1 = (projectedX1 + (self.screenWidth / 2))
+	local screenY1 = (projectedY1 + (self.screenHeight / 2))
+	local projectedY2 = (y2 * self.distanceToScreen) / z1
+	local screenY2 = (projectedY2 + (self.screenHeight / 2))
+	local screenH = screenY1-screenY2
+	local screenW2 = (w*screenH)/(2*h)
+	ttri(screenX1+screenW2, screenY1, screenX1-screenW2, screenY1, screenX1+screenW2, screenY2, u+w, v+h, u, v+h, u+w, v, texsrc, 14)
+	ttri(screenX1-screenW2, screenY2, screenX1-screenW2, screenY1, screenX1+screenW2, screenY2, u, v, u, v+h, u+w, v, texsrc, 14)
+	--[[ print(string.format("SPR from (%3.1f %3.1f %3.1f) -> (%3.1f %3.1f - %3.1f) ",x1,y1,z1,screenX1, screenY1, screenY2 ),4,120)
+	print(string.format("  with height of %3.1f -> %3.1f",y1-y2,screenH),4,128)
+	print(string.format("  u: %d v: %d",u,v),160,128,4) ]]
 end
 
 function Projection:house(x,y,z,scale)
 	x=x-6
 	y=y-0
-	local uv_x = 0
+	local uv_x = 32
 	local uv_y = 0
 
-	self:ttri(x+scale,y-scale,z-scale, x+scale,y-scale,z+scale, x+scale,y+scale,z+scale, uv_x+2,uv_y+3, uv_x+8,uv_y+3, uv_x+8,uv_y+8, 2)
-	self:ttri(x+scale,y-scale,z-scale, x+scale,y+scale,z-scale, x+scale,y+scale,z+scale, uv_x+2,uv_y+3, uv_x+2,uv_y+8, uv_x+8,uv_y+8, 2)
-	self:ttri(x+scale,y-scale,z-scale, x+scale,y+scale,z-scale, x-scale,y+scale,z-scale, uv_x+3,uv_y+3, uv_x+3,uv_y+8, uv_x+0,uv_y+8, 2)
-	self:ttri(x+scale,y-scale,z-scale, x-scale,y-scale,z-scale, x-scale,y+scale,z-scale, uv_x+3,uv_y+3, uv_x+0,uv_y+3, uv_x+0,uv_y+8, 2)
-	--self:ttri(x+scale,y-scale,z-scale, x+scale,y-scale,z+scale, x,y-2*scale,z+scale, uv_x+0,3, uv_x+8,3, uv_x+8,0)
-	--self:ttri(x+scale,y-scale,z-scale, x,y-2*scale,z-scale, x,y-2*scale,z+scale, uv_x+0,3, uv_x+0,0, uv_x+8,0)
-	--self:ttri(x-scale,y-scale,z-scale, x-scale,y-scale,z+scale, x,y-2*scale,z+scale, uv_x+0,3, uv_x+8,3, uv_x+8,0)
-	--self:ttri(x-scale,y-scale,z-scale, x,y-2*scale,z-scale, x,y-2*scale,z+scale, uv_x+0,3, uv_x+0,0, uv_x+8,0)
+	self:ttri(x+scale,y-scale,z-scale, x+scale,y-scale,z+scale, x+scale,y+scale,z+scale, uv_x+2,uv_y+3, uv_x+8,uv_y+3, uv_x+8,uv_y+8)
+	self:ttri(x+scale,y-scale,z-scale, x+scale,y+scale,z-scale, x+scale,y+scale,z+scale, uv_x+2,uv_y+3, uv_x+2,uv_y+8, uv_x+8,uv_y+8)
+	self:ttri(x+scale,y-scale,z-scale, x+scale,y+scale,z-scale, x-scale,y+scale,z-scale, uv_x+3,uv_y+3, uv_x+3,uv_y+8, uv_x+0,uv_y+8)
+	self:ttri(x+scale,y-scale,z-scale, x-scale,y-scale,z-scale, x-scale,y+scale,z-scale, uv_x+3,uv_y+3, uv_x+0,uv_y+3, uv_x+0,uv_y+8)
+	self:ttri(x+scale,y-scale,z-scale, x+scale,y-scale,z+scale, x,y-2*scale,z+scale, uv_x+0,3, uv_x+8,3, uv_x+8,0)
+	self:ttri(x+scale,y-scale,z-scale, x,y-2*scale,z-scale, x,y-2*scale,z+scale, uv_x+0,3, uv_x+0,0, uv_x+8,0)
+	self:ttri(x-scale,y-scale,z-scale, x-scale,y-scale,z+scale, x,y-2*scale,z+scale, uv_x+0,3, uv_x+8,3, uv_x+8,0)
+	self:ttri(x-scale,y-scale,z-scale, x,y-2*scale,z-scale, x,y-2*scale,z+scale, uv_x+0,3, uv_x+0,0, uv_x+8,0)
 	
 end
 
@@ -173,7 +193,7 @@ p = Projection:new ()
 	end
 end]]
 
-scale = 2
+
 function TIC()
 
 	if btn(0) then z=z-0.1 end
@@ -190,24 +210,14 @@ function TIC()
 	--p:tri(-1,1,2,1,1,2,x,y,z,4,true)
 	local size = scale
 	local x0, y0, z0 = 2,2,1
+	p:tspr(-3+x,y+2,4+z,-3+y)
+	p:house(3+x,y+2,4+z,2)
+	--[[
 	p:tquad( x, y, z)
 	p:tquad( x+2, y, z)
 	p:tquad( x, y, z+2)
 	p:tquad( x+2, y, z+2)
---[[	p:ttri( x+x0, y+y0, z+z0, x+x0, y+y0, z-z0, x-x0, y+y0, z-z0, size,0, size,size,  0,size, 0,2,scale)
-	local x0, y0, z0 = -2,2,1
-	p:ttri( x-x0, y+y0, z+z0, x+x0, y+y0, z+z0, x-x0, y+y0, z-z0, 0,0, size,0, 0,size, 0,2,scale)
-	p:ttri( x+x0, y+y0, z+z0, x+x0, y+y0, z-z0, x-x0, y+y0, z-z0, size,0, size,size,  0,size, 0,2,scale)
 	]]
-	--[[local x0, y0, z0 = 1,2,2
-	p:ttri(-x0+x,y+y0,z0+z, x0+x,y+y0,z0+z, x-x0,y+y0,z, 0,0, size,0, 0,size, 0,2,z_scale)
-	p:ttri( x0+x,y+y0,z0+z, x+1,y+y0,z, x-x0,y+y0,z, size,0, size,size,  0,size, 0,2,z_scale)
-	local x0, y0, z0 = 2,2,2
-	p:ttri(-x0+x,y+y0,z0+z, x0+x,y+y0,z0+z, x-x0,y+y0,z, 0,0, size,0, 0,size, 0,2,z_scale)
-	p:ttri( x0+x,y+y0,z0+z, x+1,y+y0,z, x-x0,y+y0,z, size,0, size,size,  0,size, 0,2,z_scale)
-	]]
-	--p:house(x,y,z,260,z_scale)
-	--print(string.format("(%3.1f %3.1f %3.1f)",x,y,z),4,120)
 	t=t+1
 end
 
