@@ -20,7 +20,7 @@ trace(clamp(100,0,50))
 
 Track={
 	airResistance = 0.2, -- 1.161 = (0.5)*0.3*1.29*6
-	friction = 0.8
+	friction = 0.4
 }
 function Track:new(o)
 	o = o or {}   -- create object if user does not provide one
@@ -32,25 +32,26 @@ function Track:update(loc)
 	
 end
 function Track:draw(loc,y)
-	loc = 2* loc
 	circ(20,80,2,12)
 	circ(220,80,2,12)
 	line(20,80,220,80,12)
-	circb(20+loc,80,5-(T//10)%3,12)
-	circ(20+loc,80,2,2)
+	circb(220+loc,80,5-(T//10)%3,12)
+	circ(220+loc,80,2,2)
 	y=2*y
-	line(20+loc,70,20+loc,70-y,4)
+	line(220+loc,70,220+loc,70-y,4)
 end
 
-load=1.5
+load=0.5
 throttle = 0-- Acceleration/braking input, range: [-1, 1]
+
+
 
 local Bim = {
  weight = 22300+8000/load, -- kg
  length = 19.7, -- meters
  maxSpeed = 20, -- m/s
- acceleration = 1.2, -- m/s^2
- brakeDeceleration = 0.5, -- m/s^2
+ acceleration = 0.5, -- m/s^2
+ brakeDeceleration = 0.1, -- m/s^2
  
  position = 0,
  velocity = 0,
@@ -77,7 +78,7 @@ function Bim:update()
 	self.velocity = self.velocity + newAcceleration / 60
 	self.velocity = clamp(self.velocity,0,self.maxSpeed)
 	self.position = self.position + self.velocity / 60
-	if self.position>200 then 
+	if self.position>5 then 
 		self:reset()
 	end
 end
@@ -86,8 +87,8 @@ function Bim:reset()
 	self.velocity = 0
 end
 function update()
-	if btnp(0,5,5) then throttle = throttle + 1 end
-	if btnp(1,5,5) then throttle = throttle - 1 end
+	if btnp(0,15,5) then throttle = throttle + 1 end
+	if btnp(1,15,5) then throttle = throttle - 1 end
 	throttle = clamp(throttle,-8,5)
 	Bim:update()
 	Track:update(Bim.position)
@@ -101,6 +102,7 @@ function draw()
 end
 
 cls(0)
+Bim.position = -200
 function TIC()
 	clip(0,0,240,40)
 	cls(14)

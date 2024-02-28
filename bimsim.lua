@@ -23,15 +23,34 @@ function bezier(p0,p1,p2,p3)
   return bezierT
 end
 
-function curveLine(p0, p1, p2, p3)
+function curveLine(p0, p1, p2, p3, c)
 	local p_from,p_dest = p0, nil
+  local c = c or 12
   local accuracy = 0.05
 	local bezierT = bezier(p0, p1, p2, p3)
 	for i = 0, 1+accuracy, accuracy do
 		p_dest = bezierT(i)
-		line(p_from.x, p_from.y, p_dest.x, p_dest.y, 12)
+		line(p_from.x, p_from.y, p_dest.x, p_dest.y, c)
 		p_from = p_dest
 	end
+end
+function curvePoly(p0, p1, p2, p3, p_0, p_1, p_2, p_3, color)
+  local p_1 = p_1 or p1 + (p_0 - p0)
+  local p_3 = p_3 or p3 + (p_0 - p0)
+  local p_2 = p_2 or p2 + (p_3 - p3)
+  local color = color or 12
+  local accuracy = 0.05
+	local bezierT = bezier(p0, p1, p2, p3)
+  local bezierT_ = bezier(p_0, p_1, p_2, p_3)
+  local p_from, p_dest, p_from_, p_dest_ = p0, nil, p_0, nil
+  for i = 0, 1+accuracy, accuracy do
+    p_dest = bezierT(i)
+    p_dest_ = bezierT_(i)
+		line(p_from.x, p_from.y, p_dest.x, p_dest.y, color)
+    line(p_from_.x, p_from_.y, p_dest_.x, p_dest.y_, color)
+		p_from = p_dest
+    p_from_ = p_dest_
+  end
 end
 
 Res = vect(240,136)
@@ -54,11 +73,11 @@ Level= {
     
     rect(0,60,240,60,13)
     local t_x = 100+math.floor(X)
-    curveLine(
-      vect(90,136),
-      vect( 90,100),
-      vect( t_x,60),
-      vect( t_x-2,60))
+    curvePoly(
+      vect(90,136), vect( 90,100), vect( t_x,60), vect( t_x-2,60),
+      vect(146,136), vect( 146,100), vect( t_x,60), vect( t_x+2,60),
+      3
+    )
     --curveLine(146,136, 146,100, t_x,60, t_x+2,60 )
     spr(14, 200,50,8,1,0,0,2,2)
     X = X + 0.2
